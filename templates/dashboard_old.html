@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة التحكم - تحضير قطاع الجموم{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Page Header -->
+    <div class="col-12 mb-4">
+        <h1 class="h2">
+            <i class="fas fa-tachometer-alt me-2"></i>
+            لوحة التحكم
+        </h1>
+    </div>
+</div>
+
+<!-- Summary Statistics -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">إجمالي الموظفين</h5>
+                        <h2 class="mb-0">{{ total_employees }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">إجمالي سيارات الإسعاف</h5>
+                        <h2 class="mb-0">{{ total_ambulances }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-truck-medical fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">سيارات جاهزة</h5>
+                        <h2 class="mb-0">{{ ready_ambulances }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">ورديات اليوم</h5>
+                        <h2 class="mb-0">{{ today_shifts|length }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">المهام النشطة</h5>
+                        <h2 class="mb-0">{{ active_tasks }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-tasks fa-2x"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small class="opacity-75">مهام الدعم اللوجيستي</small>
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('tasks') }}" class="text-white text-decoration-none">
+                    <small>عرض جميع المهام <i class="fas fa-arrow-left ms-1"></i></small>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Teams Summary Row -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-users-cog me-2"></i>
+                    ملخص الفرق المناوبة لليوم
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h3 class="text-primary">{{ teams_morning }}</h3>
+                                <p class="mb-0">فرق الصباح</p>
+                                <small class="text-muted">(6:00 - 18:00)</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h3 class="text-warning">{{ teams_evening }}</h3>
+                                <p class="mb-0">فرق المساء</p>
+                                <small class="text-muted">(18:00 - 6:00)</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h3 class="text-success">{{ teams_full }}</h3>
+                                <p class="mb-0">فرق 24 ساعة</p>
+                                <small class="text-muted">(دوام كامل)</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h3>{{ total_teams_today }}</h3>
+                                <p class="mb-0">إجمالي الفرق</p>
+                                <small class="opacity-75">جميع الفترات</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('teams') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-users-cog me-1"></i>
+                        إدارة الفرق المناوبة
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Today's Shifts -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-calendar-day me-2"></i>
+                    ورديات اليوم
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if today_shifts %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>الفترة</th>
+                                    <th>رمز الموظف</th>
+                                    <th>القطاع</th>
+                                    <th>اسم الرئيس</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for shift in today_shifts %}
+                                <tr>
+                                    <td>
+                                        {% if shift.period == 'D' %}
+                                            <span class="badge bg-primary">نهاري</span>
+                                        {% elif shift.period == 'N' %}
+                                            <span class="badge bg-dark">ليلي</span>
+                                        {% elif shift.period == 'F' %}
+                                            <span class="badge bg-success">24 ساعة</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ shift.employee_code }}</td>
+                                    <td>{{ shift.sector }}</td>
+                                    <td>{{ shift.chief_name or '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                        <p>لا توجد ورديات لليوم</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Shifts Chart -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    الورديات - آخر 30 يوم
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="shiftsChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+    // Chart data from backend
+    const chartData = {{ chart_data|tojson }};
+    initShiftsChart(chartData);
+</script>
+{% endblock %}

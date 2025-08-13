@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}الفرق المناوبة - تحضير قطاع الجموم{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header section-spacing">
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+            <h1><i class="fas fa-users-cog me-2"></i>إدارة الفرق المناوبة</h1>
+            <p class="text-muted mb-0">تحضير وإدارة فرق المناوبة حسب الفترات المختلفة</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addTeamModal">
+                <i class="fas fa-plus me-1"></i>
+                إضافة تحضير فرق
+            </button>
+            <a href="{{ url_for('export_teams') }}{% if date_filter %}?date={{ date_filter }}{% endif %}" class="btn btn-outline-primary">
+                <i class="fas fa-download me-1"></i>
+                تصدير CSV
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Section -->
+<div class="filter-section">
+    <form method="GET" class="d-flex align-items-end gap-3 flex-wrap">
+        <div class="flex-grow-1">
+            <label for="date" class="form-label">فلترة حسب التاريخ</label>
+            <input type="date" class="form-control" id="date" name="date" value="{{ date_filter }}">
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-filter me-1"></i>
+                فلترة
+            </button>
+            <a href="{{ url_for('teams') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-times me-1"></i>
+                إزالة الفلتر
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Teams Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    تحضير الفرق المناوبة
+                    {% if date_filter %}
+                        - {{ date_filter }}
+                    {% endif %}
+                    <span class="badge bg-primary ms-2">{{ teams|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if teams %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>التاريخ</th>
+                                    <th>فرق الصباح</th>
+                                    <th>فرق المساء</th>
+                                    <th>فرق 24 ساعة</th>
+                                    <th>إجمالي الفرق</th>
+                                    <th>الملاحظات</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for team in teams %}
+                                <tr>
+                                    <td><strong>{{ team.date }}</strong></td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ team.morning_teams or 0 }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-warning">{{ team.evening_teams or 0 }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">{{ team.full_teams or 0 }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ ((team.morning_teams|int) + (team.evening_teams|int) + (team.full_teams|int)) }}</span>
+                                    </td>
+                                    <td>{{ team.notes or '-' }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1" 
+                                                onclick="editTeam({{ loop.index0 }}, '{{ team.date }}', '{{ team.morning_teams }}', '{{ team.evening_teams }}', '{{ team.full_teams }}', '{{ team.notes }}')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                                onclick="confirmDelete({{ loop.index0 }}, '{{ team.date }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-users-cog"></i>
+                        <h4>لا توجد بيانات فرق</h4>
+                        <p>قم بإضافة تحضير فرق جديد للبدء</p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTeamModal">
+                            <i class="fas fa-plus me-1"></i>
+                            إضافة أول تحضير
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Team Modal -->
+<div class="modal fade" id="addTeamModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">إضافة تحضير فرق جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_team') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="date" class="form-label">التاريخ <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="date" name="date" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="morning_teams" class="form-label">فرق الصباح</label>
+                            <input type="number" class="form-control" id="morning_teams" name="morning_teams" min="0" value="0">
+                            <small class="text-muted">صباحي (6:00 - 18:00)</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="evening_teams" class="form-label">فرق المساء</label>
+                            <input type="number" class="form-control" id="evening_teams" name="evening_teams" min="0" value="0">
+                            <small class="text-muted">مسائي (18:00 - 6:00)</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="full_teams" class="form-label">فرق 24 ساعة</label>
+                            <input type="number" class="form-control" id="full_teams" name="full_teams" min="0" value="0">
+                            <small class="text-muted">دوام كامل</small>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">الملاحظات</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="ملاحظات إضافية..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">إضافة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Team Modal -->
+<div class="modal fade" id="editTeamModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تعديل تحضير الفرق</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editTeamForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editDate" class="form-label">التاريخ <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="editDate" name="date" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="editMorningTeams" class="form-label">فرق الصباح</label>
+                            <input type="number" class="form-control" id="editMorningTeams" name="morning_teams" min="0" value="0">
+                            <small class="text-muted">صباحي (6:00 - 18:00)</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="editEveningTeams" class="form-label">فرق المساء</label>
+                            <input type="number" class="form-control" id="editEveningTeams" name="evening_teams" min="0" value="0">
+                            <small class="text-muted">مسائي (18:00 - 6:00)</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="editFullTeams" class="form-label">فرق 24 ساعة</label>
+                            <input type="number" class="form-control" id="editFullTeams" name="full_teams" min="0" value="0">
+                            <small class="text-muted">دوام كامل</small>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editNotes" class="form-label">الملاحظات</label>
+                        <textarea class="form-control" id="editNotes" name="notes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteTeamModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تأكيد الحذف</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>هل أنت متأكد من حذف تحضير الفرق لتاريخ: <strong id="deleteTeamDate"></strong>؟</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    لا يمكن التراجع عن هذا الإجراء
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <form id="deleteTeamForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">حذف</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editTeam(id, date, morningTeams, eveningTeams, fullTeams, notes) {
+    document.getElementById('editDate').value = date;
+    document.getElementById('editMorningTeams').value = morningTeams || 0;
+    document.getElementById('editEveningTeams').value = eveningTeams || 0;
+    document.getElementById('editFullTeams').value = fullTeams || 0;
+    document.getElementById('editNotes').value = notes || '';
+    document.getElementById('editTeamForm').action = '/teams/edit/' + id;
+    
+    const modal = new bootstrap.Modal(document.getElementById('editTeamModal'));
+    modal.show();
+}
+
+function confirmDelete(id, date) {
+    document.getElementById('deleteTeamDate').textContent = date;
+    document.getElementById('deleteTeamForm').action = '/teams/delete/' + id;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteTeamModal'));
+    modal.show();
+}
+
+// Set today's date as default
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('date').value = today;
+});
+</script>
+{% endblock %}

@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}الموظفون - تحضير قطاع الجموم{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header section-spacing">
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+            <h1><i class="fas fa-users me-2"></i>إدارة الموظفين</h1>
+            <p class="text-muted mb-0">إدارة بيانات الموظفين وتصنيفاتهم الوظيفية</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
+                <i class="fas fa-plus me-1"></i>
+                إضافة موظف جديد
+            </button>
+            <a href="{{ url_for('export_employees') }}" class="btn btn-outline-primary">
+                <i class="fas fa-download me-1"></i>
+                تصدير CSV
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Employees Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                {% if employees %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>رمز الموظف</th>
+                                    <th>الاسم</th>
+                                    <th>رقم الهاتف</th>
+                                    <th>الوظيفة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for employee in employees %}
+                                <tr>
+                                    <td><strong>{{ employee.code }}</strong></td>
+                                    <td>{{ employee.name }}</td>
+                                    <td>{{ employee.phone }}</td>
+                                    <td>{{ employee.role }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1" 
+                                                onclick="editEmployee('{{ employee.code }}', '{{ employee.name }}', '{{ employee.phone }}', '{{ employee.role }}')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                                onclick="confirmDelete('{{ employee.code }}', '{{ employee.name }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-users fa-3x mb-3"></i>
+                        <h4>لا يوجد موظفون</h4>
+                        <p>قم بإضافة موظف جديد للبدء</p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
+                            <i class="fas fa-plus me-1"></i>
+                            إضافة أول موظف
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Employee Modal -->
+<div class="modal fade" id="addEmployeeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">إضافة موظف جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_employee') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="code" class="form-label">رمز الموظف <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="code" name="code" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">الاسم الكامل <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">رقم الهاتف <span class="text-danger">*</span></label>
+                        <input type="tel" class="form-control" id="phone" name="phone" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">الوظيفة <span class="text-danger">*</span></label>
+                        <select class="form-select" id="role" name="role" required>
+                            <option value="">اختر الوظيفة</option>
+                            <option value="طبيب">طبيب</option>
+                            <option value="ممرض">ممرض</option>
+                            <option value="مساعد طبي">مساعد طبي</option>
+                            <option value="سائق">سائق</option>
+                            <option value="مشرف">مشرف</option>
+                            <option value="مدير">مدير</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">إضافة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Employee Modal -->
+<div class="modal fade" id="editEmployeeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تعديل بيانات الموظف</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editEmployeeForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editCode" class="form-label">رمز الموظف</label>
+                        <input type="text" class="form-control" id="editCode" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editName" class="form-label">الاسم الكامل <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPhone" class="form-label">رقم الهاتف <span class="text-danger">*</span></label>
+                        <input type="tel" class="form-control" id="editPhone" name="phone" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editRole" class="form-label">الوظيفة <span class="text-danger">*</span></label>
+                        <select class="form-select" id="editRole" name="role" required>
+                            <option value="طبيب">طبيب</option>
+                            <option value="ممرض">ممرض</option>
+                            <option value="مساعد طبي">مساعد طبي</option>
+                            <option value="سائق">سائق</option>
+                            <option value="مشرف">مشرف</option>
+                            <option value="مدير">مدير</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteEmployeeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تأكيد الحذف</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>هل أنت متأكد من حذف الموظف: <strong id="deleteEmployeeName"></strong>؟</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    لا يمكن التراجع عن هذا الإجراء
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <form id="deleteEmployeeForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">حذف</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editEmployee(code, name, phone, role) {
+    document.getElementById('editCode').value = code;
+    document.getElementById('editName').value = name;
+    document.getElementById('editPhone').value = phone;
+    document.getElementById('editRole').value = role;
+    document.getElementById('editEmployeeForm').action = '/employees/edit/' + code;
+    
+    const modal = new bootstrap.Modal(document.getElementById('editEmployeeModal'));
+    modal.show();
+}
+
+function confirmDelete(code, name) {
+    document.getElementById('deleteEmployeeName').textContent = name;
+    document.getElementById('deleteEmployeeForm').action = '/employees/delete/' + code;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteEmployeeModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

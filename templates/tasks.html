@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}مهام الدعم اللوجيستي - تحضير قطاع الجموم{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header section-spacing">
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+            <h1><i class="fas fa-tasks me-2"></i>إدارة مهام الدعم اللوجيستي</h1>
+            <p class="text-muted mb-0">تتبع وإدارة مهام الموظفين مع المشرفين المسؤولين</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                <i class="fas fa-plus me-1"></i>
+                إضافة مهمة جديدة
+            </button>
+            <a href="{{ url_for('export_tasks') }}{% if employee_filter or supervisor_filter %}?{% if employee_filter %}employee={{ employee_filter }}{% endif %}{% if supervisor_filter %}{% if employee_filter %}&{% endif %}supervisor={{ supervisor_filter }}{% endif %}{% endif %}" class="btn btn-outline-primary">
+                <i class="fas fa-download me-1"></i>
+                تصدير CSV
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Section -->
+<div class="filter-section">
+    <form method="GET" class="d-flex align-items-end gap-3 flex-wrap">
+        <div class="flex-grow-1">
+            <label for="employee" class="form-label">فلترة حسب الموظف</label>
+            <input type="text" class="form-control" id="employee" name="employee" value="{{ employee_filter }}" placeholder="اسم الموظف...">
+        </div>
+        <div class="flex-grow-1">
+            <label for="supervisor" class="form-label">فلترة حسب المشرف</label>
+            <input type="text" class="form-control" id="supervisor" name="supervisor" value="{{ supervisor_filter }}" placeholder="اسم المشرف...">
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-filter me-1"></i>
+                فلترة
+            </button>
+            <a href="{{ url_for('tasks') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-times me-1"></i>
+                إزالة الفلتر
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Tasks Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    مهام الدعم اللوجيستي
+                    {% if employee_filter or supervisor_filter %}
+                        - مفلترة
+                    {% endif %}
+                    <span class="badge bg-primary ms-2">{{ tasks|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if tasks %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>اسم الموظف</th>
+                                    <th>وصف المهمة</th>
+                                    <th>اسم المشرف</th>
+                                    <th>تاريخ الإنشاء</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in tasks %}
+                                <tr>
+                                    <td><strong>{{ task.employee_name }}</strong></td>
+                                    <td>{{ task.task_description }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ task.supervisor_name }}</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ task.created_at }}</small>
+                                        {% if task.updated_at %}
+                                            <br><small class="text-success">محدث: {{ task.updated_at }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1" 
+                                                onclick="editTask({{ loop.index0 }}, '{{ task.employee_name }}', '{{ task.task_description }}', '{{ task.supervisor_name }}')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                                onclick="confirmDelete({{ loop.index0 }}, '{{ task.employee_name }}', '{{ task.task_description[:30] }}...')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-tasks"></i>
+                        <h4>لا توجد مهام</h4>
+                        <p>قم بإضافة مهمة جديدة للبدء</p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                            <i class="fas fa-plus me-1"></i>
+                            إضافة أول مهمة
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Task Modal -->
+<div class="modal fade" id="addTaskModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">إضافة مهمة جديدة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_task') }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="employee_name" class="form-label">اسم الموظف <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="employee_name" name="employee_name" required 
+                                   list="employeesList" placeholder="اختر أو اكتب اسم الموظف">
+                            <datalist id="employeesList">
+                                {% for employee in employees %}
+                                    <option value="{{ employee.name }}">
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="supervisor_name" class="form-label">اسم المشرف <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="supervisor_name" name="supervisor_name" required placeholder="اسم المشرف المسؤول">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="task_description" class="form-label">وصف المهمة <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="task_description" name="task_description" rows="4" required 
+                                  placeholder="وصف تفصيلي للمهمة المطلوب تنفيذها..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">إضافة المهمة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Task Modal -->
+<div class="modal fade" id="editTaskModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تعديل المهمة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editTaskForm" method="POST">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editEmployeeName" class="form-label">اسم الموظف <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editEmployeeName" name="employee_name" required 
+                                   list="employeesListEdit" placeholder="اختر أو اكتب اسم الموظف">
+                            <datalist id="employeesListEdit">
+                                {% for employee in employees %}
+                                    <option value="{{ employee.name }}">
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editSupervisorName" class="form-label">اسم المشرف <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editSupervisorName" name="supervisor_name" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editTaskDescription" class="form-label">وصف المهمة <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="editTaskDescription" name="task_description" rows="4" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تأكيد الحذف</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>هل أنت متأكد من حذف مهمة الموظف: <strong id="deleteTaskEmployee"></strong>؟</p>
+                <p class="text-muted">المهمة: <em id="deleteTaskDescription"></em></p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    لا يمكن التراجع عن هذا الإجراء
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <form id="deleteTaskForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">حذف</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editTask(id, employeeName, taskDescription, supervisorName) {
+    document.getElementById('editEmployeeName').value = employeeName;
+    document.getElementById('editTaskDescription').value = taskDescription;
+    document.getElementById('editSupervisorName').value = supervisorName;
+    document.getElementById('editTaskForm').action = '/tasks/edit/' + id;
+    
+    const modal = new bootstrap.Modal(document.getElementById('editTaskModal'));
+    modal.show();
+}
+
+function confirmDelete(id, employeeName, taskDescription) {
+    document.getElementById('deleteTaskEmployee').textContent = employeeName;
+    document.getElementById('deleteTaskDescription').textContent = taskDescription;
+    document.getElementById('deleteTaskForm').action = '/tasks/delete/' + id;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteTaskModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

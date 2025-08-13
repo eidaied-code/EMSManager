@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}الورديات - تحضير قطاع الجموم{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Page Header -->
+    <div class="col-12 mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="h2">
+                <i class="fas fa-clock me-2"></i>
+                إدارة الورديات
+            </h1>
+            <div>
+                <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#addShiftModal">
+                    <i class="fas fa-plus me-1"></i>
+                    إضافة وردية
+                </button>
+                <a href="{{ url_for('export_shifts') }}{% if month_filter %}?month={{ month_filter }}{% endif %}" class="btn btn-outline-primary">
+                    <i class="fas fa-download me-1"></i>
+                    تصدير CSV
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Row -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" class="d-flex align-items-end">
+                    <div class="me-3 flex-grow-1">
+                        <label for="month" class="form-label">فلترة حسب الشهر</label>
+                        <input type="month" class="form-control" id="month" name="month" value="{{ month_filter }}">
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-filter me-1"></i>
+                            فلترة
+                        </button>
+                        <a href="{{ url_for('shifts') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>
+                            إزالة
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Shifts Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    الورديات
+                    {% if month_filter %}
+                        - {{ month_filter }}
+                    {% endif %}
+                    <span class="badge bg-primary ms-2">{{ shifts|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if shifts %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>التاريخ</th>
+                                    <th>الفترة</th>
+                                    <th>رمز الموظف</th>
+                                    <th>القطاع</th>
+                                    <th>اسم الرئيس</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for shift in shifts %}
+                                <tr>
+                                    <td>{{ shift.date }}</td>
+                                    <td>
+                                        {% if shift.period == 'D' %}
+                                            <span class="badge bg-primary">نهاري</span>
+                                        {% elif shift.period == 'N' %}
+                                            <span class="badge bg-dark">ليلي</span>
+                                        {% elif shift.period == 'F' %}
+                                            <span class="badge bg-success">24 ساعة</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><strong>{{ shift.employee_code }}</strong></td>
+                                    <td>{{ shift.sector }}</td>
+                                    <td>{{ shift.chief_name or '-' }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1" 
+                                                onclick="editShift({{ loop.index0 }}, '{{ shift.date }}', '{{ shift.period }}', '{{ shift.employee_code }}', '{{ shift.sector }}', '{{ shift.chief_name }}')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                                onclick="confirmDelete({{ loop.index0 }}, '{{ shift.date }}', '{{ shift.employee_code }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-clock fa-3x mb-3"></i>
+                        <h4>لا توجد ورديات</h4>
+                        <p>قم بإضافة وردية جديدة للبدء</p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addShiftModal">
+                            <i class="fas fa-plus me-1"></i>
+                            إضافة أول وردية
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Shift Modal -->
+<div class="modal fade" id="addShiftModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">إضافة وردية جديدة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_shift') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="date" class="form-label">التاريخ <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="date" name="date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="period" class="form-label">الفترة <span class="text-danger">*</span></label>
+                        <select class="form-select" id="period" name="period" required>
+                            <option value="">اختر الفترة</option>
+                            <option value="D">نهاري (D)</option>
+                            <option value="N">ليلي (N)</option>
+                            <option value="F">24 ساعة (F)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="employee_code" class="form-label">الموظف <span class="text-danger">*</span></label>
+                        <select class="form-select" id="employee_code" name="employee_code" required>
+                            <option value="">اختر الموظف</option>
+                            {% for employee in employees %}
+                                <option value="{{ employee.code }}">{{ employee.code }} - {{ employee.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="sector" class="form-label">القطاع <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="sector" name="sector" required placeholder="مثال: القطاع الأول، الطوارئ، العناية المركزة">
+                    </div>
+                    <div class="mb-3">
+                        <label for="chief_name" class="form-label">اسم الرئيس</label>
+                        <input type="text" class="form-control" id="chief_name" name="chief_name">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">إضافة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Shift Modal -->
+<div class="modal fade" id="editShiftModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تعديل الوردية</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editShiftForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editDate" class="form-label">التاريخ <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="editDate" name="date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPeriod" class="form-label">الفترة <span class="text-danger">*</span></label>
+                        <select class="form-select" id="editPeriod" name="period" required>
+                            <option value="D">نهاري (D)</option>
+                            <option value="N">ليلي (N)</option>
+                            <option value="F">24 ساعة (F)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editEmployeeCode" class="form-label">الموظف <span class="text-danger">*</span></label>
+                        <select class="form-select" id="editEmployeeCode" name="employee_code" required>
+                            {% for employee in employees %}
+                                <option value="{{ employee.code }}">{{ employee.code }} - {{ employee.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editSector" class="form-label">القطاع <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editSector" name="sector" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editChiefName" class="form-label">اسم الرئيس</label>
+                        <input type="text" class="form-control" id="editChiefName" name="chief_name">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteShiftModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تأكيد الحذف</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>هل أنت متأكد من حذف الوردية: <strong id="deleteShiftInfo"></strong>؟</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    لا يمكن التراجع عن هذا الإجراء
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <form id="deleteShiftForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">حذف</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editShift(id, date, period, employeeCode, sector, chiefName) {
+    document.getElementById('editDate').value = date;
+    document.getElementById('editPeriod').value = period;
+    document.getElementById('editEmployeeCode').value = employeeCode;
+    document.getElementById('editSector').value = sector;
+    document.getElementById('editChiefName').value = chiefName || '';
+    document.getElementById('editShiftForm').action = '/shifts/edit/' + id;
+    
+    const modal = new bootstrap.Modal(document.getElementById('editShiftModal'));
+    modal.show();
+}
+
+function confirmDelete(id, date, employeeCode) {
+    document.getElementById('deleteShiftInfo').textContent = date + ' - ' + employeeCode;
+    document.getElementById('deleteShiftForm').action = '/shifts/delete/' + id;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteShiftModal'));
+    modal.show();
+}
+
+// Set today's date as default
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('date').value = today;
+});
+</script>
+{% endblock %}

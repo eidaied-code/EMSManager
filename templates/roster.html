@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}جدول المناوبات - تحضير قطاع الجموم{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Page Header -->
+    <div class="col-12 mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="h2">
+                <i class="fas fa-calendar-alt me-2"></i>
+                جدول المناوبات الشهرية
+            </h1>
+            <div>
+                <form method="GET" class="d-inline-block me-2">
+                    <div class="input-group">
+                        <input type="month" class="form-control" name="month" value="{{ month }}">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#instructionsModal">
+                    <i class="fas fa-info-circle me-1"></i>
+                    التعليمات
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Roster Legend -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body py-2">
+                <div class="d-flex flex-wrap align-items-center">
+                    <span class="me-4"><strong>الرموز:</strong></span>
+                    <span class="me-3"><span class="badge bg-primary">D</span> نهاري (12 ساعة)</span>
+                    <span class="me-3"><span class="badge bg-dark">N</span> ليلي (12 ساعة)</span>
+                    <span class="me-3"><span class="badge bg-success">F</span> 24 ساعة</span>
+                    <span class="me-3"><span class="badge bg-secondary">O</span> إجازة</span>
+                    <span class="text-muted">انقر على الخلية للتعديل</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Roster Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body p-0">
+                {% if roster_data and days %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm mb-0 roster-table">
+                            <thead class="table-dark sticky-top">
+                                <tr>
+                                    <th class="text-center" style="min-width: 150px;">الموظف</th>
+                                    {% for day in days %}
+                                        <th class="text-center" style="min-width: 40px;">
+                                            {{ day.split('-')[2] }}
+                                        </th>
+                                    {% endfor %}
+                                    <th class="text-center" style="min-width: 80px;">المجموع</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for emp_code, emp_data in roster_data.items() %}
+                                <tr>
+                                    <td class="fw-bold bg-light">
+                                        <div class="text-truncate" title="{{ emp_data.name }}">
+                                            {{ emp_code }}<br>
+                                            <small class="text-muted">{{ emp_data.name }}</small>
+                                        </div>
+                                    </td>
+                                    {% for day in days %}
+                                        <td class="text-center p-1 shift-cell" 
+                                            data-employee="{{ emp_code }}" 
+                                            data-date="{{ day }}"
+                                            onclick="editRosterCell(this, '{{ emp_code }}', '{{ day }}', '{{ emp_data.shifts[day] }}')">
+                                            {% set shift = emp_data.shifts[day] %}
+                                            {% if shift %}
+                                                {% if shift == 'D' %}
+                                                    <span class="badge bg-primary">{{ shift }}</span>
+                                                {% elif shift == 'N' %}
+                                                    <span class="badge bg-dark">{{ shift }}</span>
+                                                {% elif shift == 'F' %}
+                                                    <span class="badge bg-success">{{ shift }}</span>
+                                                {% elif shift == 'O' %}
+                                                    <span class="badge bg-secondary">{{ shift }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-info">{{ shift }}</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                    {% endfor %}
+                                    <td class="text-center fw-bold bg-light">
+                                        {{ emp_data.total_hours }} ساعة
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                        <h4>لا توجد بيانات للعرض</h4>
+                        <p>{% if not employees %}لا يوجد موظفون{% else %}لا توجد ورديات لهذا الشهر{% endif %}</p>
+                        {% if not employees %}
+                            <a href="{{ url_for('employees') }}" class="btn btn-primary">
+                                <i class="fas fa-users me-1"></i>
+                                إضافة موظفين
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Roster Cell Modal -->
+<div class="modal fade" id="editRosterModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تعديل الوردية</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('update_roster') }}">
+                <input type="hidden" name="month" value="{{ month }}">
+                <input type="hidden" name="employee_code" id="rosterEmployeeCode">
+                <input type="hidden" name="date" id="rosterDate">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="rosterEmployeeName" class="form-label">الموظف</label>
+                        <input type="text" class="form-control" id="rosterEmployeeName" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rosterDateDisplay" class="form-label">التاريخ</label>
+                        <input type="text" class="form-control" id="rosterDateDisplay" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rosterPeriod" class="form-label">الفترة</label>
+                        <select class="form-select" name="period" id="rosterPeriod">
+                            <option value="">بدون وردية</option>
+                            <option value="D">نهاري (D) - 12 ساعة</option>
+                            <option value="N">ليلي (N) - 12 ساعة</option>
+                            <option value="F">24 ساعة (F) - 24 ساعة</option>
+                            <option value="O">إجازة (O)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Instructions Modal -->
+<div class="modal fade" id="instructionsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تعليمات استخدام جدول المناوبات</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6><i class="fas fa-info-circle me-2"></i>كيفية الاستخدام:</h6>
+                <ol>
+                    <li>انقر على أي خلية في الجدول لتعديل الوردية</li>
+                    <li>اختر نوع الوردية من القائمة المنسدلة</li>
+                    <li>اضغط "حفظ" لتأكيد التغيير</li>
+                </ol>
+                
+                <h6 class="mt-4"><i class="fas fa-list-ul me-2"></i>رموز الورديات:</h6>
+                <ul class="list-unstyled">
+                    <li><span class="badge bg-primary me-2">D</span>نهاري - من 8 صباحاً إلى 8 مساءً (12 ساعة)</li>
+                    <li><span class="badge bg-dark me-2">N</span>ليلي - من 8 مساءً إلى 8 صباحاً (12 ساعة)</li>
+                    <li><span class="badge bg-success me-2">F</span>24 ساعة - وردية كاملة (24 ساعة)</li>
+                    <li><span class="badge bg-secondary me-2">O</span>إجازة - يوم راحة</li>
+                </ul>
+                
+                <h6 class="mt-4"><i class="fas fa-calculator me-2"></i>حساب الساعات:</h6>
+                <p class="text-muted">يتم حساب إجمالي ساعات العمل لكل موظف تلقائياً في العمود الأخير</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">فهمت</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/roster.js') }}"></script>
+{% endblock %}
