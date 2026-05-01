@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>قطاع الجموم | نموذج الجاهزية</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/sector.css') }}">
+</head>
+<body class="sector-body">
+<div class="layout">
+  <aside class="sidebar glass desktop-only">
+    <h3>قطاع الجموم</h3>
+    <a class="nav active">فحص الجاهزية</a>
+    <a class="nav" href="{{ url_for('sector_logout') }}">تسجيل خروج</a>
+  </aside>
+  <main class="content">
+    <header class="glass panel fade-up">
+      <h2>مرحباً {{ user.name }}</h2>
+      <p class="muted">تعبئة سريعة ودقيقة قبل بدء المهمة الميدانية</p>
+    </header>
+
+    <form method="post" action="{{ url_for('sector_submit_check') }}" class="stack-lg" enctype="multipart/form-data">
+      <section class="card-grid">
+        <article class="glass card"><label>الفريق</label><input class="input" name="team" required></article>
+        <article class="glass card"><label>نوع النوبة</label><select class="input" name="shift_type" required><option>صباحية</option><option>مسائية</option><option>24 ساعة</option></select></article>
+        <article class="glass card"><label>حالة الجاهزية</label><select class="input" name="readiness" required><option value="green">جاهز</option><option value="yellow">جاهز مع ملاحظات</option><option value="red">غير جاهز</option></select></article>
+        <article class="glass card"><label>لوحة المركبة</label><input class="input" name="vehicle_plate" list="plates" required><datalist id="plates">{% for s in suggestions %}<option value="{{ s }}"></option>{% endfor %}</datalist></article>
+        <article class="glass card"><label>العداد (كم)</label><input class="input" type="number" min="0" name="odometer" required></article>
+      </section>
+
+      <section class="glass panel">
+        <h3>فحص التجهيزات</h3>
+        <div class="equipment-list">
+          {% for item in items %}
+          <div class="equip-row">
+            <span>{{ item }}</span>
+            <select class="input" name="item_{{ loop.index0 }}">
+              <option value="موجود">موجود</option>
+              <option value="ناقص">ناقص</option>
+              <option value="غير صالح">غير صالح</option>
+            </select>
+            <input type="hidden" name="item_name_{{ loop.index0 }}" value="{{ item }}">
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="card-grid">
+        <article class="glass card"><label>ملاحظات العهد</label><textarea class="input" name="handover_notes" rows="4"></textarea></article>
+        <article class="glass card"><label>ملاحظات عامة</label><textarea class="input" name="general_notes" rows="4"></textarea></article>
+        <article class="glass card"><label>نواقص التموين</label><textarea class="input" name="supply_shortages" rows="4"></textarea></article>
+        <article class="glass card"><label>صورة (اختياري)</label><input class="input" type="file" name="image" accept="image/*"></article>
+      </section>
+
+      <button class="btn btn-primary btn-lg btn-block" type="submit">حفظ وإرسال</button>
+    </form>
+
+    {% if success %}
+      <div class="toast success fade-up">تم حفظ النموذج بنجاح ✅</div>
+      <div class="action-row"><a class="btn" href="{{ url_for('sector_paramedic') }}">نموذج جديد</a><a class="btn btn-warning" href="{{ url_for('sector_logout') }}">إنهاء الجلسة</a></div>
+    {% endif %}
+  </main>
+
+  <nav class="bottom-nav mobile-only glass"><a class="active">الفحص</a><a href="{{ url_for('sector_logout') }}">خروج</a></nav>
+</div>
+</body>
+</html>

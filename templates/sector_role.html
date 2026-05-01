@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>قطاع الجموم | اختيار الدور</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/sector.css') }}">
+</head>
+<body class="sector-body">
+  <main class="auth-shell">
+    <section class="glass auth-card fade-up">
+      <h2>أهلاً {{ user.name }}</h2>
+      <p class="muted">اختر نوع الدخول لهذه النوبة</p>
+      <div class="grid2">
+        <a href="{{ url_for('sector_set_role', role='paramedic') }}" class="btn btn-primary btn-lg">مسعف</a>
+        <a href="{{ url_for('sector_set_role', role='leader') }}" class="btn btn-warning btn-lg">قائد</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

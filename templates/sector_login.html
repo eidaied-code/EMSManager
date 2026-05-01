@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>قطاع الجموم | الدخول</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/sector.css') }}">
+</head>
+<body class="sector-body">
+  <main class="auth-shell">
+    <section class="glass auth-card fade-up">
+      <p class="badge">منظومة جاهزية الإسعاف</p>
+      <h1>قطاع الجموم</h1>
+      <p class="muted">تسجيل دخول سريع بالرقم الوظيفي</p>
+      <form method="post" action="{{ url_for('sector_auth') }}" class="stack-lg">
+        <label for="code">الرقم الوظيفي</label>
+        <input id="code" name="code" class="input input-lg" required inputmode="numeric" pattern="[0-9]+" autocomplete="one-time-code" placeholder="مثال: 5730">
+        <button class="btn btn-primary btn-lg btn-block" type="submit">دخول</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>
