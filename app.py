@@ -2,7 +2,6 @@ import os
 import logging
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, make_response
-import pandas as pd
 from io import BytesIO
 from data_manager import DataManager
 
@@ -175,6 +174,7 @@ def export_employees():
     """Export employees to CSV"""
     try:
         employees = data_manager.get_employees()
+        import pandas as pd
         df = pd.DataFrame(employees)
         
         if df.empty:
@@ -294,6 +294,7 @@ def export_ambulances():
     """Export ambulances to CSV"""
     try:
         ambulances = data_manager.get_ambulances()
+        import pandas as pd
         df = pd.DataFrame(ambulances)
         
         if df.empty:
@@ -433,6 +434,7 @@ def export_shifts():
         if month_filter:
             shifts = [s for s in shifts if s['date'].startswith(month_filter)]
         
+        import pandas as pd
         df = pd.DataFrame(shifts)
         
         if df.empty:
@@ -678,6 +680,7 @@ def export_teams():
         if date_filter:
             teams = [t for t in teams if t['date'] == date_filter]
         
+        import pandas as pd
         df = pd.DataFrame(teams)
         
         if df.empty:
@@ -820,6 +823,7 @@ def export_tasks():
         if supervisor_filter:
             tasks = [t for t in tasks if supervisor_filter.lower() in t.get('supervisor_name', '').lower()]
         
+        import pandas as pd
         df = pd.DataFrame(tasks)
         
         if df.empty:
@@ -862,6 +866,96 @@ def export_tasks():
         logging.error(f"Export tasks error: {e}")
         flash('حدث خطأ في تصدير البيانات', 'error')
         return redirect(url_for('tasks'))
+
+
+from flask import session
+import random
+
+SECTOR_USERS = {
+    "5730": {"name": "عيد عايد مذيخر العصيمي", "can_choose_role": True},
+    "2702": {"name": "ماجد احمد سالم المالكي", "can_choose_role": True},
+    "5203": {"name": "احمد عبيد سالم العمري الشريف", "can_choose_role": True},
+    "6085": {"name": "نواف بن حمود اللقماني", "can_choose_role": True},
+    "5929": {"name": "محمد علي المقاطي", "can_choose_role": True},
+    "101365": {"name": "محمد عبدالله الزهراني", "can_choose_role": False},"1377": {"name": "امجد صالح عبدالله هابط", "can_choose_role": False},"5953": {"name": "محمد عبدالرحمن الحربي", "can_choose_role": False},"9770": {"name": "مستور الزبالي", "can_choose_role": False},"3364": {"name": "سلطان المصري", "can_choose_role": False},"3385": {"name": "عبيد الحربي", "can_choose_role": False},"9696": {"name": "معيض المعبدي", "can_choose_role": False},"101084": {"name": "احمد الحربي", "can_choose_role": False},"9001": {"name": "عازم الزبالي", "can_choose_role": False},"5934": {"name": "احمد الحسيني", "can_choose_role": False},"7600": {"name": "سعد العمري", "can_choose_role": False},"4916": {"name": "عبدالرحمن خوقير", "can_choose_role": False},"10637": {"name": "عيسى البشري", "can_choose_role": False},"4922": {"name": "محمد الصاعدي", "can_choose_role": False},"8710": {"name": "تركي العتيبي", "can_choose_role": False},"5928": {"name": "متعب المالكي", "can_choose_role": False},"8356": {"name": "بسام الثبيتي", "can_choose_role": False},"6499": {"name": "أدهم اندرقيري", "can_choose_role": False},"6419": {"name": "نادر الحربي", "can_choose_role": False},"3758": {"name": "محمد الغامدي", "can_choose_role": False},"6086": {"name": "فهد باحشوان", "can_choose_role": False},"8027": {"name": "عماد الغامدي", "can_choose_role": False},"5676": {"name": "فهد العدواني", "can_choose_role": False},"6482": {"name": "محسن السروري", "can_choose_role": False},"4039": {"name": "مطلق البشري", "can_choose_role": False},"5734": {"name": "مشاري العوفي", "can_choose_role": False},"6389": {"name": "تركي البشري", "can_choose_role": False},"7862": {"name": "ايمن السلمي", "can_choose_role": False},"61197": {"name": "عبدالعزيز المجنوني", "can_choose_role": False},"2096": {"name": "عبدالله المصري", "can_choose_role": False},"3388": {"name": "سعيد الزهراني", "can_choose_role": False},
+}
+
+EQUIPMENT_POOL=["جهاز صدمات القلب","اسطوانة أكسجين","حقيبة أدوية طارئة","جهاز شفط","جهاز قياس العلامات الحيوية","نقالة","طوق رقبة","عدة تضميد","أقنعة أكسجين","جهاز قياس السكر","مضخة سوائل","حبال تثبيت","بطانية حرارية","جهاز اتصال لاسلكي"]
+
+def read_json(path, default):
+    import json
+    if not os.path.exists(path):
+        with open(path,'w',encoding='utf-8') as f: json.dump(default,f,ensure_ascii=False,indent=2)
+    with open(path,'r',encoding='utf-8') as f: return json.load(f)
+
+def write_json(path, data):
+    import json
+    with open(path,'w',encoding='utf-8') as f: json.dump(data,f,ensure_ascii=False,indent=2)
+
+@app.route('/sector')
+def sector_login():
+    return render_template('sector_login.html')
+
+@app.post('/sector/auth')
+def sector_auth():
+    code=request.form.get('code','').strip()
+    user=SECTOR_USERS.get(code)
+    if not user: return redirect(url_for('sector_login'))
+    session['sector_user']={'code':code, **user}
+    if user['can_choose_role']:
+        return redirect(url_for('sector_role'))
+    session['sector_role']='paramedic'
+    return redirect(url_for('sector_paramedic'))
+
+@app.route('/sector/role')
+def sector_role():
+    user=session.get('sector_user')
+    if not user: return redirect(url_for('sector_login'))
+    return render_template('sector_role.html', user=user)
+
+@app.route('/sector/role/<role>')
+def sector_set_role(role):
+    session['sector_role']= 'leader' if role=='leader' else 'paramedic'
+    return redirect(url_for('sector_leader') if session['sector_role']=='leader' else url_for('sector_paramedic'))
+
+@app.route('/sector/paramedic')
+def sector_paramedic():
+    user=session.get('sector_user')
+    if not user: return redirect(url_for('sector_login'))
+    suggestions=read_json('data/suggestions.json',["ط ب ج 4421","ط ب ج 4402","ط ب ج 5588","ط ب ج 9931"])
+    items=random.sample(EQUIPMENT_POOL, k=10)
+    return render_template('sector_paramedic.html', user=user, suggestions=suggestions, items=items, success=request.args.get('ok'))
+
+@app.post('/sector/checks')
+def sector_submit_check():
+    user=session.get('sector_user')
+    if not user: return redirect(url_for('sector_login'))
+    item_names=[v for k,v in request.form.items() if k.startswith('item_name_')]
+    items=[]; color='green'
+    for idx,name in enumerate(item_names):
+        st=request.form.get(f'item_{idx}','موجود');items.append({'name':name,'status':st})
+        if st=='غير صالح': color='red'
+        elif st=='ناقص' and color!='red': color='yellow'
+    explicit=request.form.get('readiness','green')
+    if explicit=='red': color='red'
+    elif explicit=='yellow' and color=='green': color='yellow'
+    checks=read_json('data/checks.json',[])
+    rec={'id':len(checks)+1,'user_code':user['code'],'user_name':user['name'],'team':request.form.get('team'),'shift_type':request.form.get('shift_type'),'readiness':explicit,'status_color':color,'vehicle_plate':request.form.get('vehicle_plate'),'odometer':request.form.get('odometer'),'handover_notes':request.form.get('handover_notes'),'general_notes':request.form.get('general_notes'),'supply_shortages':request.form.get('supply_shortages'),'timestamp':datetime.now().strftime('%Y-%m-%d %H:%M'),'items':items}
+    checks.append(rec); write_json('data/checks.json',checks)
+    return redirect(url_for('sector_paramedic',ok=1))
+
+@app.route('/sector/leader')
+def sector_leader():
+    user=session.get('sector_user')
+    if not user: return redirect(url_for('sector_login'))
+    if session.get('sector_role')!='leader': return redirect(url_for('sector_paramedic'))
+    checks=list(reversed(read_json('data/checks.json',[])))
+    return render_template('sector_leader.html', user=user, checks=checks)
+
+@app.route('/sector/logout')
+def sector_logout():
+    session.pop('sector_user',None); session.pop('sector_role',None)
+    return redirect(url_for('sector_login'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

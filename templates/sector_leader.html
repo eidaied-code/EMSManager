@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>قطاع الجموم | لوحة القائد</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/sector.css') }}">
+</head>
+<body class="sector-body">
+<div class="layout">
+  <aside class="sidebar glass desktop-only"><h3>لوحة القائد</h3><a class="nav active">إدارة النوبة</a><a class="nav" href="{{ url_for('sector_logout') }}">خروج</a></aside>
+  <main class="content">
+    <header class="glass panel fade-up"><h2>مرحباً {{ user.name }}</h2><p class="muted">ملاحظات النوبة · الفشل التشغيلي · البلاغات المؤثرة · إدارة النوبة · البيانات التاريخية</p></header>
+    <section class="team-grid">
+      {% for c in checks %}
+      <article class="team-card glass {{ c.status_color }}">
+        <h4>{{ c.team }}</h4>
+        <p>{{ c.user_name }}</p>
+        <small>{{ c.timestamp }}</small>
+        <p>الحالة: {{ c.readiness }}</p>
+        <details><summary>عرض التفاصيل</summary><ul>{% for i in c.items %}<li>{{ i.name }} - {{ i.status }}</li>{% endfor %}</ul><p>{{ c.general_notes }}</p></details>
+      </article>
+      {% endfor %}
+    </section>
+  </main>
+</div>
+</body>
+</html>
